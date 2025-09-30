@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // you can switch to mysql/sqlite if needed
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(ADMIN)
+  subRole   String?  
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blogs     Blog[]
+  comments   Comment[]
+  likes     Like[]
+  bookmarks Bookmark[] 
+  messages  BlogMessage[]   @relation("UserMessages")
+}
+
+model Blog {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String  
+  authorId   Int
+  author     User     @relation(fields: [authorId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+    comments   Comment[]
+    likes     Like[]
+  bookmarks Bookmark[] 
+  chat      BlogChat?
+}
+
+model BlogChat {
+  id        Int           @id @default(autoincrement())
+  blogId    Int           @unique
+  blog      Blog          @relation(fields: [blogId], references: [id])
+  messages  BlogMessage[]
+  createdAt DateTime      @default(now())
+}
+
+model BlogMessage {
+  id        Int      @id @default(autoincrement())
+  text      String
+  chatId    Int
+  senderId  Int
+  createdAt DateTime @default(now())
+
+  chat   BlogChat @relation(fields: [chatId], references: [id])
+  sender User     @relation("UserMessages", fields: [senderId], references: [id])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  blogId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model Like {
+  id        Int       @id @default(autoincrement())
+  blogId    Int
+  userId    Int
+
+  blog      Blog      @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, userId]) 
+}
+
+model Bookmark {
+  id     Int  @id @default(autoincrement())
+  blogId Int
+  userId Int
+
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, userId]) 
+}
